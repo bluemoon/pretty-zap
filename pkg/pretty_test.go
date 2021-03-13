@@ -80,14 +80,23 @@ func (b *Buffer) Stripped() string {
 
 func BenchmarkLog(b *testing.B) {
 		level := zap.DebugLevel
-		pe := zap.NewDevelopmentEncoderConfig()
 
-		pe.EncodeCaller = zapcore.ShortCallerEncoder
-		pe.EncodeTime = zapcore.ISO8601TimeEncoder
-		pe.CallerKey = "caller"
+		encoderConfig := zap.NewDevelopmentEncoderConfig()
+		encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+		encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		encoderConfig.CallerKey = "caller"
 
-		consoleEncoder := NewPrettyEncoder(&pe)
-		zc := zapcore.NewCore(consoleEncoder, &Discarder{}, level)
+		bp := _bufferPool.Get()
+
+
+		pe := &PrettyLogger{
+				Encoder: &Encoder{
+						EncoderConfig: &encoderConfig,
+						buf:           bp,
+				},
+		}
+
+		zc := zapcore.NewCore(pe.Encoder, &Discarder{}, level)
 		l := zap.New(zc,
 				zap.AddCaller(),
 				zap.AddStacktrace(zap.PanicLevel),

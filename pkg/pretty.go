@@ -7,32 +7,25 @@ import (
 		"os"
 )
 
-type PrettyEncoder struct {
-		*zapcore.EncoderConfig
+type PrettyLogger struct {
 		*Encoder
-		buf *buffer.Buffer
 }
 
-func NewPrettyEncoder(encoderConfig *zapcore.EncoderConfig) *PrettyEncoder {
+func NewPrettyLogger(encoderConfig *zapcore.EncoderConfig, level zapcore.Level) *zap.Logger {
 		bp := _bufferPool.Get()
-		return &PrettyEncoder{
-				EncoderConfig: encoderConfig,
+
+		encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+		encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		encoderConfig.CallerKey = "caller"
+
+		pe := &PrettyLogger{
 				Encoder: &Encoder{
 						EncoderConfig: encoderConfig,
 						buf:           bp,
 				},
-				buf: bp,
 		}
-}
 
-func (p *PrettyEncoder) Logger(level zapcore.Level) *zap.Logger {
-		pe := zap.NewDevelopmentEncoderConfig()
-		pe.EncodeCaller = zapcore.ShortCallerEncoder
-		pe.EncodeTime = zapcore.ISO8601TimeEncoder
-		pe.CallerKey = "caller"
-
-		consoleEncoder := NewPrettyEncoder(&pe)
-		zc := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), level)
+		zc := zapcore.NewCore(pe, zapcore.AddSync(os.Stdout), level)
 		l := zap.New(zc,
 				zap.AddCaller(),
 				zap.AddStacktrace(zap.PanicLevel),
