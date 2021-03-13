@@ -106,7 +106,15 @@ func BenchmarkLog(b *testing.B) {
 		b.Run("pretty-zap", func(b *testing.B) {
 				b.RunParallel(func(pb *testing.PB) {
 						for pb.Next() {
-								sl.Infow("info log", "asdf", 1)
+								sl.Infow("info log",
+										"asdf", 1,
+										"asdf2", 1,
+										"asdf3", 1,
+										"asdf4", 1,
+										"asdf5", 1,
+										"asdf6", 1,
+										"asdf7", 1,
+								)
 						}
 				})
 		})
