@@ -1,4 +1,4 @@
-module github.com/bluemoon/pretty-zap
+module github.com/bluemoon/prettyzap
 
 go 1.16
 
