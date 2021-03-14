@@ -43,12 +43,12 @@ var (
 )
 
 // ColorKey will color the provided key at the associated log level color
-func ColorKey(level zapcore.Level) string {
+func ColorKey(level zapcore.Level) EscapeCodes {
 	c, ok := levelColors[level]
 	if !ok {
 		c = unknownLevelColor
 	}
-	return string(c)
+	return c
 }
 
 func LevelToShortName(level zapcore.Level) string {

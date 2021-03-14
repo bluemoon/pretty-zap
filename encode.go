@@ -19,7 +19,11 @@ func (p *Encoder) addKey(key string) {
 
 func (p *Encoder) addElementSeparator() {
 	last := p.buf.Len() - 1
-	if last <= 0 {
+	if p.termLastAppended == true {
+		p.termLastAppended = false
+		return
+	}
+	if last < 0 {
 		return
 	}
 	switch p.buf.Bytes()[last] {
@@ -40,7 +44,8 @@ func (p *Encoder) c128(c complex128) {
 
 type Encoder struct {
 	*zapcore.EncoderConfig
-	buf *buffer.Buffer
+	buf              *buffer.Buffer
+	termLastAppended bool
 }
 
 var _ zapcore.PrimitiveArrayEncoder = (*Encoder)(nil)
@@ -48,7 +53,8 @@ var _ zapcore.ArrayEncoder = (*Encoder)(nil)
 var _ zapcore.Encoder = (*Encoder)(nil)
 
 func (p *Encoder) AppendTerminal(e EscapeCodes) {
-	p.AppendString(string(e))
+	p.termLastAppended = true
+	p.buf.AppendString(string(e))
 }
 
 func (p *Encoder) AppendDuration(duration time.Duration) {
@@ -258,7 +264,7 @@ func (p *Encoder) AddInt8(key string, value int8) {
 
 func (p *Encoder) AddString(key, value string) {
 	p.addKey(key)
-	p.AppendString(value)
+	p.buf.AppendString(value)
 }
 
 func (p *Encoder) AddTime(key string, value time.Time) {
@@ -317,23 +323,23 @@ func (p *Encoder) Clone() zapcore.Encoder {
 
 func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	handler := p.clone()
-	handler.buf.AppendString(White)
+	handler.AppendTerminal(White)
 	handler.EncodeTime(entry.Time, handler)
-	handler.buf.AppendString(Clear)
+	handler.AppendTerminal(Clear)
 	handler.buf.AppendByte(' ')
 	if entry.Level.Enabled(entry.Level) {
-		handler.buf.AppendString(ColorKey(entry.Level))
+		handler.AppendTerminal(ColorKey(entry.Level))
 		handler.buf.AppendString(LevelToShortName(entry.Level))
-		handler.buf.AppendString(Clear)
+		handler.AppendTerminal(Clear)
 	}
 	handler.buf.AppendByte(' ')
 
 	if entry.Caller.Defined && !isEmpty(p.CallerKey) {
-		handler.buf.AppendString(White)
+		handler.AppendTerminal(White)
 		handler.buf.AppendByte('[')
 		handler.EncodeCaller(entry.Caller, handler)
 		handler.buf.AppendByte(']')
-		handler.buf.AppendString(Clear)
+		handler.AppendTerminal(Clear)
 	}
 	handler.buf.AppendByte(' ')
 	// add message to the log
