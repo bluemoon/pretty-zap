@@ -19,7 +19,7 @@ func (p *Encoder) addKey(key string) {
 
 func (p *Encoder) addElementSeparator() {
 	last := p.buf.Len() - 1
-	if last < 0 {
+	if last <= 0 {
 		return
 	}
 	switch p.buf.Bytes()[last] {
