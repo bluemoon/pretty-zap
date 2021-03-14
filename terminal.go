@@ -1,4 +1,4 @@
-package main
+package prettyzap
 
 import "go.uber.org/zap/zapcore"
 
