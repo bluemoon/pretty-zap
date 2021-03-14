@@ -313,7 +313,6 @@ func (p *Encoder) Clone() zapcore.Encoder {
 
 func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	handler := p.clone()
-	handler.buf.AppendByte('[')
 	handler.buf.AppendString(White)
 	handler.EncodeTime(entry.Time, handler)
 	handler.buf.AppendString(Clear)
@@ -323,14 +322,14 @@ func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buf
 		handler.buf.AppendString(LevelToShortName(entry.Level))
 		handler.buf.AppendString(Clear)
 	}
-	handler.buf.AppendByte(']')
+	handler.buf.AppendByte(' ')
 
 	if entry.Caller.Defined && !isEmpty(p.CallerKey) {
-		handler.buf.AppendByte('[')
 		handler.buf.AppendString(White)
+		handler.buf.AppendByte('[')
 		handler.EncodeCaller(entry.Caller, handler)
-		handler.buf.AppendString(Clear)
 		handler.buf.AppendByte(']')
+		handler.buf.AppendString(Clear)
 	}
 	handler.buf.AppendByte(' ')
 	// add message to the log
