@@ -314,14 +314,13 @@ func (p *Encoder) Clone() zapcore.Encoder {
 func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	handler := p.clone()
 	handler.buf.AppendByte('[')
+	handler.EncodeTime(entry.Time, handler)
+	handler.buf.AppendByte(' ')
 	if entry.Level.Enabled(entry.Level) {
 		handler.buf.AppendString(ColorKey(entry.Level))
-		level := fmt.Sprintf("%-5s", entry.Level.String())
-		handler.buf.AppendString(level)
+		handler.buf.AppendString(LevelToShortName(entry.Level))
 		handler.buf.AppendString(Clear)
 	}
-	handler.buf.AppendByte(' ')
-	handler.EncodeTime(entry.Time, handler)
 	handler.buf.AppendByte(']')
 
 	if entry.Caller.Defined && !isEmpty(p.CallerKey) {

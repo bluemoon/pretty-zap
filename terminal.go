@@ -30,6 +30,16 @@ var (
 		zapcore.DPanicLevel: Red, // uber's development panic level
 	}
 	unknownLevelColor EscapeCodes = Red
+
+	levelStr = map[zapcore.Level]string{
+		zapcore.DebugLevel:  "DBG",
+		zapcore.InfoLevel:   "INF",
+		zapcore.WarnLevel:   "WRN",
+		zapcore.ErrorLevel:  "ERR",
+		zapcore.PanicLevel:  "PNC",
+		zapcore.FatalLevel:  "FTL",
+		zapcore.DPanicLevel: "DPNC",
+	}
 )
 
 // ColorKey will color the provided key at the associated log level color
@@ -39,4 +49,12 @@ func ColorKey(level zapcore.Level) string {
 		c = unknownLevelColor
 	}
 	return string(c)
+}
+
+func LevelToShortName(level zapcore.Level) string {
+	c, ok := levelStr[level]
+	if !ok {
+		c = "???"
+	}
+	return c
 }
