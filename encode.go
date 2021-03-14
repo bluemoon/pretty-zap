@@ -314,9 +314,7 @@ func (p *Encoder) Clone() zapcore.Encoder {
 func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	handler := p.clone()
 	handler.buf.AppendByte('[')
-	handler.buf.AppendString(White)
 	handler.EncodeTime(entry.Time, handler)
-	handler.buf.AppendString(Clear)
 	handler.buf.AppendByte(' ')
 	if entry.Level.Enabled(entry.Level) {
 		handler.buf.AppendString(ColorKey(entry.Level))
