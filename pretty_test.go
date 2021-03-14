@@ -79,7 +79,7 @@ func (b *Buffer) Stripped() string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-func BenchmarkLog(b *testing.B) {
+func BenchmarkPretty(b *testing.B) {
 	level := zap.DebugLevel
 
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
@@ -102,6 +102,39 @@ func BenchmarkLog(b *testing.B) {
 		zap.AddStacktrace(zap.PanicLevel),
 	)
 	sl := l.Sugar()
+	b.ResetTimer()
+	b.Run("pretty-zap", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				sl.Infow("info log",
+					"asdf", 1,
+					"asdf2", 1,
+					"asdf3", 1,
+					"asdf4", 1,
+					"asdf5", 1,
+					"asdf6", 1,
+					"asdf7", 1,
+				)
+			}
+		})
+	})
+}
+
+func BenchmarkZap(b *testing.B) {
+	level := zap.DebugLevel
+
+	encoderConfig := zap.NewDevelopmentEncoderConfig()
+	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.CallerKey = "caller"
+
+	e := zapcore.NewConsoleEncoder(encoderConfig)
+	pe := zapcore.NewCore(e, &Discarder{}, level)
+	z := zap.New(pe,
+		zap.AddCaller(),
+		zap.AddStacktrace(zap.PanicLevel),
+	)
+	sl := z.Sugar()
 	b.ResetTimer()
 	b.Run("pretty-zap", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {

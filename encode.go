@@ -47,6 +47,10 @@ var _ zapcore.PrimitiveArrayEncoder = (*Encoder)(nil)
 var _ zapcore.ArrayEncoder = (*Encoder)(nil)
 var _ zapcore.Encoder = (*Encoder)(nil)
 
+func (p *Encoder) AppendTerminal(e EscapeCodes) {
+	p.AppendString(string(e))
+}
+
 func (p *Encoder) AppendDuration(duration time.Duration) {
 	p.addElementSeparator()
 	cur := p.buf.Len()
