@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
@@ -321,15 +319,11 @@ func (p *Encoder) clone() *Encoder {
 
 func (p *Encoder) Clone() zapcore.Encoder {
 	clone := p.clone()
-	println("cloning")
-	fmt.Printf("p buf len=%d\n", p.buf.Len())
-	write, err := clone.buf.Write(p.buf.Bytes())
-	fmt.Printf("err=%v write=%d\n", err, write)
+	clone.buf.Write(p.buf.Bytes())
 	return clone
 }
 
 func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
-	spew.Dump(fields)
 	handler := p.clone()
 	handler.AppendTerminal(White)
 	handler.config.EncodeTime(entry.Time, handler)
