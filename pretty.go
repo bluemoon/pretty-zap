@@ -13,16 +13,16 @@ type PrettyLogger struct {
 }
 
 func NewPrettyLogger(encoderConfig *zapcore.EncoderConfig, level zapcore.Level) *zap.Logger {
-	bp := _bufferPool.Get()
-
+	pool := NewEncoderPool()
 	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.CallerKey = "caller"
 
 	pe := &PrettyLogger{
 		Encoder: &Encoder{
-			EncoderConfig: encoderConfig,
-			buf:           bp,
+			pool:   pool,
+			config: encoderConfig,
+			buf:    _bufferPool.Get(),
 		},
 	}
 

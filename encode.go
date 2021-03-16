@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
@@ -43,7 +45,8 @@ func (p *Encoder) c128(c complex128) {
 }
 
 type Encoder struct {
-	*zapcore.EncoderConfig
+	pool             *EncoderPool
+	config           *zapcore.EncoderConfig
 	buf              *buffer.Buffer
 	termLastAppended bool
 }
@@ -60,7 +63,7 @@ func (p *Encoder) AppendTerminal(e EscapeCodes) {
 func (p *Encoder) AppendDuration(duration time.Duration) {
 	p.addElementSeparator()
 	cur := p.buf.Len()
-	p.EncodeDuration(duration, p)
+	p.config.EncodeDuration(duration, p)
 	if cur == p.buf.Len() {
 		p.AppendInt64(int64(duration))
 	}
@@ -69,7 +72,7 @@ func (p *Encoder) AppendDuration(duration time.Duration) {
 func (p *Encoder) AppendTime(t time.Time) {
 	p.addElementSeparator()
 	cur := p.buf.Len()
-	p.EncodeTime(t, p)
+	p.config.EncodeTime(t, p)
 	if cur == p.buf.Len() {
 		p.AppendInt64(int64(t.UnixNano()))
 	}
@@ -228,7 +231,7 @@ func (p *Encoder) AddComplex64(key string, value complex64) {
 
 func (p *Encoder) AddDuration(key string, value time.Duration) {
 	p.addKey(key)
-	p.EncodeDuration(value, p)
+	p.config.EncodeDuration(value, p)
 }
 
 func (p *Encoder) AddFloat64(key string, value float64) {
@@ -269,7 +272,7 @@ func (p *Encoder) AddString(key, value string) {
 
 func (p *Encoder) AddTime(key string, value time.Time) {
 	p.addKey(key)
-	p.EncodeTime(value, p)
+	p.config.EncodeTime(value, p)
 }
 
 func (p *Encoder) AddUint(key string, value uint) {
@@ -310,21 +313,26 @@ func (p *Encoder) AddReflected(key string, value interface{}) error {
 func (p *Encoder) OpenNamespace(key string) {}
 
 func (p *Encoder) clone() *Encoder {
-	bp := _bufferPool.Get()
-	return &Encoder{
-		EncoderConfig: p.EncoderConfig,
-		buf:           bp,
-	}
+	clone := p.pool.Get()
+	clone.config = p.config
+	clone.buf = _bufferPool.Get()
+	return clone
 }
 
 func (p *Encoder) Clone() zapcore.Encoder {
-	return p.clone()
+	clone := p.clone()
+	println("cloning")
+	fmt.Printf("p buf len=%d\n", p.buf.Len())
+	write, err := clone.buf.Write(p.buf.Bytes())
+	fmt.Printf("err=%v write=%d\n", err, write)
+	return clone
 }
 
 func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
+	spew.Dump(fields)
 	handler := p.clone()
 	handler.AppendTerminal(White)
-	handler.EncodeTime(entry.Time, handler)
+	handler.config.EncodeTime(entry.Time, handler)
 	handler.AppendTerminal(Clear)
 	handler.buf.AppendByte(' ')
 	if entry.Level.Enabled(entry.Level) {
@@ -334,16 +342,16 @@ func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buf
 	}
 	handler.buf.AppendByte(' ')
 
-	if entry.Caller.Defined && !isEmpty(p.CallerKey) {
+	if entry.Caller.Defined && !isEmpty(p.config.CallerKey) {
 		handler.AppendTerminal(White)
 		handler.buf.AppendByte('[')
-		handler.EncodeCaller(entry.Caller, handler)
+		handler.config.EncodeCaller(entry.Caller, handler)
 		handler.buf.AppendByte(']')
 		handler.AppendTerminal(Clear)
 	}
 	handler.buf.AppendByte(' ')
 	// add message to the log
-	if !isEmpty(p.MessageKey) {
+	if !isEmpty(p.config.MessageKey) {
 		handler.buf.AppendString(entry.Message)
 	}
 	// add the fields
@@ -351,6 +359,12 @@ func (p *Encoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buf
 		fields[i].AddTo(handler)
 	}
 
+	if handler.buf.Len() > 0 {
+		handler.buf.Write(p.buf.Bytes())
+	}
 	handler.buf.AppendByte('\n')
-	return handler.buf, nil
+
+	ret := handler.buf
+	p.pool.Put(handler)
+	return ret, nil
 }
